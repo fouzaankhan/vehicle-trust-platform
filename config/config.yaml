@@ -1,0 +1,59 @@
+project:
+  name: "vehicle-trust-platform"
+  version: "1.0.0"
+
+paths:
+  raw_data: "data/raw/"
+  interim_data: "data/interim/"
+  processed_data: "data/processed/"
+  models: "models/"
+  reports: "reports/"
+
+data:
+  target_column: "price"
+  min_price: 1000        # USD — filter out $1 joke entries
+  max_price: 230000      # USD — keep full range of this dataset
+  min_year: 1995
+  max_year: 2024
+  max_km_driven: 500000
+
+model:
+  price_model:
+    n_estimators: 300
+    learning_rate: 0.05
+    max_depth: 6
+    random_state: 42
+    test_size: 0.2
+
+trust_weights:
+  price: 0.25
+  nlp: 0.30
+  image: 0.20
+  seller: 0.15
+  market: 0.10
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s — %(name)s — %(levelname)s — %(message)s"
+
+features:
+  numeric:
+    - vehicle_age
+    - km_driven
+    - log_km
+    - condition
+    - mmr
+    - mmr_deviation
+    - age_km_ratio
+    - km_per_year
+    - make_median_price
+    - model_median_price
+    - price_vs_make_median
+    - sale_month
+
+  categorical_encoded:
+    - transmission_encoded
+    - condition_band_encoded
+
+  target: "log_price"
+  raw_target: "price"
