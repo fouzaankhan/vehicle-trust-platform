@@ -19,11 +19,12 @@ data:
 
 model:
   price_model:
-    n_estimators: 300
+    n_estimators: 1000
     learning_rate: 0.05
     max_depth: 6
     random_state: 42
     test_size: 0.2
+    early_stopping_rounds: 50
 
 trust_weights:
   price: 0.25
@@ -42,13 +43,10 @@ features:
     - km_driven
     - log_km
     - condition
-    - mmr
-    - mmr_deviation
     - age_km_ratio
     - km_per_year
     - make_median_price
     - model_median_price
-    - price_vs_make_median
     - sale_month
 
   categorical_encoded:

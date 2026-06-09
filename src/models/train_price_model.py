@@ -28,7 +28,7 @@ class PriceModelTrainer:
     def run(self):
         df = self._load_data()
         X_train, X_test, y_train, y_test = self._split(df)
-        self.model = self._train(X_train, y_train)
+        self.model = self._train(X_train, y_train, X_test, y_test)
         self._evaluate(X_test, y_test)
         self._save_model()
         self._generate_shap_report(X_test)
@@ -75,7 +75,7 @@ class PriceModelTrainer:
     # ------------------------------------------------------------------ #
     # Train XGBoost model
     # ------------------------------------------------------------------ #
-    def _train(self, X_train, y_train):
+    def _train(self, X_train, y_train, X_test, y_test):
         cfg = self.config["model"]["price_model"]
 
         model = xgb.XGBRegressor(
@@ -83,17 +83,18 @@ class PriceModelTrainer:
             learning_rate=cfg["learning_rate"],
             max_depth=cfg["max_depth"],
             random_state=cfg["random_state"],
+            early_stopping_rounds=cfg["early_stopping_rounds"],
             n_jobs=-1,
             verbosity=1
         )
 
-        self.logger.info("Training XGBoost model...")
+        self.logger.info("Training XGBoost model with early stopping...")
         model.fit(
             X_train, y_train,
-            eval_set=[(X_train, y_train)],
+            eval_set=[(X_test, y_test)],
             verbose=50
         )
-        self.logger.info("Training complete.")
+        self.logger.info(f"Best iteration: {model.best_iteration}")
         return model
 
     # ------------------------------------------------------------------ #
