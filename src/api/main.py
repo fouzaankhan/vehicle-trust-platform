@@ -1,0 +1,90 @@
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, validator
+from typing import Optional
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+from src.models.predict import PricePredictor
+from src.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
+app = FastAPI(
+    title="Vehicle Trust Intelligence API",
+    description="Predicts fair market price for used vehicle listings.",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+# Load model once at startup — not on every request
+predictor = PricePredictor()
+
+
+# ------------------------------------------------------------------ #
+# Input schema with validation
+# ------------------------------------------------------------------ #
+class ListingInput(BaseModel):
+    make: str
+    model_name: str
+    year: int
+    km_driven: int
+    transmission: Optional[str] = "automatic"
+    condition: Optional[float] = 25.0
+    sale_month: Optional[int] = 6
+
+    @validator("year")
+    def valid_year(cls, v):
+        if v < 1995 or v > 2024:
+            raise ValueError("Year must be between 1995 and 2024")
+        return v
+
+    @validator("km_driven")
+    def valid_km(cls, v):
+        if v < 0 or v > 500000:
+            raise ValueError("km_driven must be between 0 and 500000")
+        return v
+
+    @validator("condition")
+    def valid_condition(cls, v):
+        if v is not None and (v < 1 or v > 49):
+            raise ValueError("Condition must be between 1 and 49")
+        return v
+
+
+# ------------------------------------------------------------------ #
+# Routes
+# ------------------------------------------------------------------ #
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "model_version": "v1"}
+
+
+@app.post("/predict/price")
+def predict_price(listing: ListingInput):
+    try:
+        input_dict = {
+            "make": listing.make,
+            "model": listing.model_name,
+            "year": listing.year,
+            "km_driven": listing.km_driven,
+            "transmission": listing.transmission,
+            "condition": listing.condition,
+            "sale_month": listing.sale_month
+        }
+        result = predictor.predict(input_dict)
+        return {
+            "status": "success",
+            "predicted_price_usd": result["predicted_price"],
+            "input_received": input_dict
+        }
+    except Exception as e:
+        logger.error(f"Prediction failed: {e}")
+        raise HTTPException(status_code=500, detail="Prediction failed.")

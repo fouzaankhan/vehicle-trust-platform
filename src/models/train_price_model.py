@@ -31,7 +31,19 @@ class PriceModelTrainer:
         self.model = self._train(X_train, y_train, X_test, y_test)
         self._evaluate(X_test, y_test)
         self._save_model()
+        self._save_median_maps()          # added
         self._generate_shap_report(X_test)
+    
+    def _save_median_maps(self):
+        full_df = pd.read_csv(
+            "data/processed/vehicle_sales_features.csv",
+            usecols=["make", "model", "price"]
+        )
+        make_medians = full_df.groupby("make")["price"].median().to_dict()
+        model_medians = full_df.groupby("model")["price"].median().to_dict()
+        joblib.dump(make_medians, "models/make_medians.joblib")
+        joblib.dump(model_medians, "models/model_medians.joblib")
+        self.logger.info("Saved make and model median maps.")
 
     # ------------------------------------------------------------------ #
     # Load and select only the feature columns defined in config
