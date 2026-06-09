@@ -5,15 +5,21 @@ from typing import Optional
 import sys
 import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.append(
+    os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../..")
+    )
+)
+
 from src.models.predict import PricePredictor
+from src.models.nlp_fraud_detector import NLPFraudDetector
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
 app = FastAPI(
     title="Vehicle Trust Intelligence API",
-    description="Predicts fair market price for used vehicle listings.",
+    description="Predicts fair market price and analyzes listing fraud risk.",
     version="1.0.0"
 )
 
@@ -24,13 +30,17 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# Load model once at startup — not on every request
+# --------------------------------------------------
+# Load models once
+# --------------------------------------------------
+
 predictor = PricePredictor()
+nlp_detector = NLPFraudDetector()
 
+# --------------------------------------------------
+# Input Schemas
+# --------------------------------------------------
 
-# ------------------------------------------------------------------ #
-# Input schema with validation
-# ------------------------------------------------------------------ #
 class ListingInput(BaseModel):
     make: str
     model_name: str
@@ -59,12 +69,20 @@ class ListingInput(BaseModel):
         return v
 
 
-# ------------------------------------------------------------------ #
+class DescriptionInput(BaseModel):
+    description: str
+
+
+# --------------------------------------------------
 # Routes
-# ------------------------------------------------------------------ #
+# --------------------------------------------------
+
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "model_version": "v1"}
+    return {
+        "status": "ok",
+        "model_version": "v1"
+    }
 
 
 @app.post("/predict/price")
@@ -79,12 +97,36 @@ def predict_price(listing: ListingInput):
             "condition": listing.condition,
             "sale_month": listing.sale_month
         }
+
         result = predictor.predict(input_dict)
+
         return {
             "status": "success",
             "predicted_price_usd": result["predicted_price"],
             "input_received": input_dict
         }
+
     except Exception as e:
         logger.error(f"Prediction failed: {e}")
-        raise HTTPException(status_code=500, detail="Prediction failed.")
+        raise HTTPException(
+            status_code=500,
+            detail="Prediction failed."
+        )
+
+
+@app.post("/analyze/description")
+def analyze_description(input: DescriptionInput):
+    try:
+        fraud_result = nlp_detector.analyze(input.description)
+
+        return {
+            "status": "success",
+            "fraud_analysis": fraud_result
+        }
+
+    except Exception as e:
+        logger.error(f"NLP analysis failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="NLP analysis failed."
+        )
