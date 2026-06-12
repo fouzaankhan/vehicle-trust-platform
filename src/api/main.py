@@ -1,3 +1,6 @@
+from fastapi import UploadFile, File
+from src.models.image_analyzer import VehicleImageAnalyzer
+import shutil
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator
@@ -37,6 +40,9 @@ app.add_middleware(
 
 predictor = PricePredictor()
 nlp_detector = NLPFraudDetector()
+
+image_analyzer = VehicleImageAnalyzer()
+os.makedirs("data/uploads", exist_ok=True)
 
 # --------------------------------------------------
 # Input Schemas
@@ -130,3 +136,16 @@ def analyze_description(input: DescriptionInput):
             status_code=500,
             detail="NLP analysis failed."
         )
+    
+@app.post("/analyze/image")
+async def analyze_image(file: UploadFile = File(...)):
+    try:
+        save_path = f"data/uploads/{file.filename}"
+        with open(save_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        result = image_analyzer.analyze(save_path)
+        return {"status": "success", "image_analysis": result}
+    except Exception as e:
+        logger.error(f"Image analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="Image analysis failed.")
