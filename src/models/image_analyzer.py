@@ -23,12 +23,14 @@ class VehicleImageAnalyzer:
         quality = self._assess_quality(img)
         damage = self._estimate_damage_signals(img)
         composition = self._assess_composition(img)
+        damage_flags = self._damage_flags(damage)
 
         condition_score = self._combine_scores(quality, damage)
 
         return {
             "quality_metrics": quality,
             "damage_signals": damage,
+            "damage_flags": damage_flags,
             "composition": composition,
             "image_condition_score": condition_score,
             "verdict": self._verdict(condition_score, quality)
@@ -75,15 +77,27 @@ class VehicleImageAnalyzer:
     # ------------------------------------------------------------------ #
     def _estimate_damage_signals(self, img) -> dict:
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # Rust color range in HSV (orange-brown tones)
+        # Step 1: Color-based candidate mask (orange-brown tones)
         rust_lower = np.array([5, 50, 50])
         rust_upper = np.array([20, 255, 200])
-        rust_mask = cv2.inRange(hsv, rust_lower, rust_upper)
-        rust_ratio = float(rust_mask.sum()) / (img.shape[0] * img.shape[1] * 255)
+        rust_color_mask = cv2.inRange(hsv, rust_lower, rust_upper)
+        rust_color_ratio = float(rust_color_mask.sum()) / (img.shape[0] * img.shape[1] * 255)
 
-        # Edge density — proxy for dents/scratches (more chaotic edges = more damage)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Step 2: Texture check — rust is rough/noisy, smooth tan paint is not.
+        # Compute local variance (texture) only within the candidate region.
+        rust_texture_score = 0.0
+        if rust_color_ratio > 0.01:
+            lap = cv2.Laplacian(gray, cv2.CV_64F)
+            masked_pixels = lap[rust_color_mask > 0]
+            if len(masked_pixels) > 0:
+                rust_texture_score = float(np.var(masked_pixels))
+
+        # Rust = correct color AND rough texture
+        rust_detected = bool(rust_color_ratio > 0.04 and rust_texture_score > 800)
+
+        # Edge density — proxy for dents/scratches
         edges = cv2.Canny(gray, 100, 200)
         edge_density = float(edges.mean())
 
@@ -92,10 +106,11 @@ class VehicleImageAnalyzer:
         dark_ratio = float(dark_mask.sum()) / (img.shape[0] * img.shape[1] * 255)
 
         return {
-            "rust_ratio_pct": round(rust_ratio * 100, 2),
+            "rust_color_ratio_pct": round(rust_color_ratio * 100, 2),
+            "rust_texture_score": round(rust_texture_score, 2),
             "edge_density": round(edge_density, 2),
             "dark_patch_ratio_pct": round(dark_ratio * 100, 2),
-            "rust_detected": bool(rust_ratio > 0.05),
+            "rust_detected": rust_detected,
             "high_edge_complexity": bool(edge_density > 30)
         }
 
@@ -122,22 +137,26 @@ class VehicleImageAnalyzer:
     # Combine into single 0-100 condition score
     # ------------------------------------------------------------------ #
     def _combine_scores(self, quality, damage) -> float:
-        score = 70.0  # baseline
+        """
+        Score is driven primarily by IMAGE QUALITY — which is reliable.
+        Damage/rust signals are informational only (see _verdict) because
+        color/texture heuristics without object localization are unreliable
+        on uncropped images (background, ground, bumpers create false positives).
+        """
+        score = 50.0  # neutral baseline
 
-        # Quality penalties
         if quality["is_blurry"]:
-            score -= 20
+            score -= 30
+        else:
+            score += 20
+
         if quality["is_too_dark"] or quality["is_too_bright"]:
-            score -= 10
+            score -= 15
+        else:
+            score += 10
 
-        # Damage penalties
-        if damage["rust_detected"]:
-            score -= 25
-        if damage["dark_patch_ratio_pct"] > 15:
-            score -= 10
-
-        # Bonus for good lighting and sharpness
-        if not quality["is_blurry"] and not quality["is_too_dark"]:
+        # Small contrast bonus — sharp, well-lit photos score higher
+        if quality["contrast"] > 50:
             score += 10
 
         return round(max(0, min(100, score)), 1)
@@ -146,11 +165,34 @@ class VehicleImageAnalyzer:
         if quality["is_blurry"]:
             return "IMAGE QUALITY TOO LOW — request clearer photos"
         elif condition_score >= 70:
-            return "GOOD CONDITION"
+            return "GOOD IMAGE QUALITY — suitable for listing review"
         elif condition_score >= 45:
-            return "FAIR CONDITION — some wear visible"
+            return "ACCEPTABLE IMAGE QUALITY — minor issues"
         else:
-            return "POOR CONDITION — significant damage signals detected"
+            return "POOR IMAGE QUALITY — request better photos"
+        
+    def _damage_flags(self, damage) -> dict:
+        flags = []
+
+        if damage["rust_detected"]:
+            flags.append(
+                "Possible rust/discoloration detected — verify visually"
+            )
+
+        if damage["high_edge_complexity"]:
+            flags.append(
+                "High visual complexity — possible damage or busy background"
+            )
+
+        if damage["dark_patch_ratio_pct"] > 25:
+            flags.append(
+                "Large dark regions — possible shadow or dent"
+            )
+
+        return {
+            "flags": flags if flags else ["No flags raised"],
+            "reliability": "EXPERIMENTAL — requires manual verification"
+        }
 
 
 if __name__ == "__main__":
