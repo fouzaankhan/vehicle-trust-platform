@@ -1,10 +1,8 @@
-# test_nlp_api.py
-
 import requests
 import json
 
 payload = {
-    "description": "Well maintained 2018 Toyota Camry. Single owner. Full service history. No accidents. Test drive welcome."
+    "description": "URGENT SALE. I am posted abroad with army. God fearing seller. Escrow payment only. WhatsApp me immediately."
 }
 
 r = requests.post(
@@ -12,4 +10,5 @@ r = requests.post(
     json=payload
 )
 
+print("STATUS:", r.status_code)
 print(json.dumps(r.json(), indent=2))

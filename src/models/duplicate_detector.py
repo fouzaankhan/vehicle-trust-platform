@@ -14,6 +14,8 @@ def get_sentence_transformer():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
 class DuplicateDetector:
+    MODEL_NAME = "all-MiniLM-L6-v2"
+    SIMILARITY_THRESHOLD = 0.92
 
     def __init__(self, load_model=True):
         self.model = None
@@ -50,11 +52,14 @@ class DuplicateDetector:
         logger.info(f"Loaded index: {len(self.known_ids)} entries")
 
     def check_duplicate(self, description: str) -> dict:
-        """Check if a new description is suspiciously similar to known ones."""
         if self.known_embeddings is None:
             return {"is_duplicate": False, "reason": "No index loaded."}
 
+        if self.model is None:
+            self.model = get_sentence_transformer()
+
         new_emb = self.model.encode([description])
+
         sims = cosine_similarity(new_emb, self.known_embeddings)[0]
         max_sim = float(sims.max())
         max_idx = int(sims.argmax())

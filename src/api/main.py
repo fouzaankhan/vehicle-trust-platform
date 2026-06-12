@@ -4,6 +4,7 @@ from pydantic import BaseModel, validator
 from typing import Optional
 import sys
 import os
+from src.models.nlp_fraud_detector import NLPFraudDetector
 
 sys.path.append(
     os.path.abspath(
@@ -67,7 +68,6 @@ class ListingInput(BaseModel):
         if v is not None and (v < 1 or v > 49):
             raise ValueError("Condition must be between 1 and 49")
         return v
-
 
 class DescriptionInput(BaseModel):
     description: str
