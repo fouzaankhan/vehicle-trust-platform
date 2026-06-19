@@ -3,7 +3,7 @@ import sqlite3
 import json
 import os
 from datetime import datetime
-from app.utils.api_client import predict_price
+from utils.api_client import predict_price
 
 st.set_page_config(page_title="Analyze Listing", page_icon="🔍", layout="wide")
 st.title("🔍 Analyze a Vehicle Listing")

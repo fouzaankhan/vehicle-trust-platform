@@ -1,5 +1,5 @@
 import streamlit as st
-from app.utils.api_client import health_check
+from utils.api_client import health_check
 
 st.set_page_config(
     page_title="Vehicle Trust Platform",
