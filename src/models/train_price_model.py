@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
 import xgboost as xgb
-import shap
+# import shap
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from src.utils.logger import setup_logger
@@ -32,7 +32,7 @@ class PriceModelTrainer:
         self._evaluate(X_test, y_test)
         self._save_model()
         self._save_median_maps()          # added
-        self._generate_shap_report(X_test)
+        # self._generate_shap_report(X_test)
     
     def _save_median_maps(self):
         full_df = pd.read_csv(
@@ -73,7 +73,13 @@ class PriceModelTrainer:
     def _split(self, df):
         target = self.config["features"]["target"]
         X = df[self.feature_cols]
-        y = df[target]
+        y = (df[target])
+        print("\nTARGET USED FOR TRAINING =", target)
+        print("\nTARGET SAMPLE:")
+        print(y.head())
+
+        print("\nTARGET STATS:")
+        print(y.describe())
 
         test_size = self.config["model"]["price_model"]["test_size"]
         random_state = self.config["model"]["price_model"]["random_state"]

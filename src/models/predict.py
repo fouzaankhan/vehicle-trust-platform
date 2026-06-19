@@ -26,6 +26,7 @@ class PricePredictor:
         features = self._engineer_features(listing)
         feature_df = pd.DataFrame([features])[self.feature_cols]
         log_price_pred = self.model.predict(feature_df)[0]
+        print("RAW OUTPUT =", log_price_pred)
         price_pred = float(np.expm1(log_price_pred))
 
         return {

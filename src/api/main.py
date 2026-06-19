@@ -1,3 +1,4 @@
+from src.models.trust_engine import TrustEngine
 from fastapi import UploadFile, File
 from src.models.image_analyzer import VehicleImageAnalyzer
 import shutil
@@ -42,6 +43,7 @@ predictor = PricePredictor()
 nlp_detector = NLPFraudDetector()
 
 image_analyzer = VehicleImageAnalyzer()
+trust_engine = TrustEngine()
 os.makedirs("data/uploads", exist_ok=True)
 
 # --------------------------------------------------
@@ -149,3 +151,63 @@ async def analyze_image(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Image analysis failed: {e}")
         raise HTTPException(status_code=500, detail="Image analysis failed.")
+    
+class FullListingInput(BaseModel):
+    make: str
+    model_name: str
+    year: int
+    km_driven: int
+    listed_price: float
+    transmission: Optional[str] = "automatic"
+    condition: Optional[float] = 25.0
+    sale_month: Optional[int] = 6
+    description: str
+    image_filename: Optional[str] = None  # filename already uploaded via /analyze/image
+
+
+@app.post("/analyze/full")
+def analyze_full_listing(listing: FullListingInput):
+    try:
+        # 1. Price prediction
+        price_input = {
+            "make": listing.make,
+            "model": listing.model_name,
+            "year": listing.year,
+            "km_driven": listing.km_driven,
+            "transmission": listing.transmission,
+            "condition": listing.condition,
+            "sale_month": listing.sale_month
+        }
+        price_result = predictor.predict(price_input)
+        predicted_price = price_result["predicted_price"]
+
+        # 2. NLP fraud analysis
+        nlp_result = nlp_detector.analyze(listing.description)
+
+        # 3. Image analysis (optional — only if image was previously uploaded)
+        image_result = None
+        if listing.image_filename:
+            image_path = f"data/uploads/{listing.image_filename}"
+            if os.path.exists(image_path):
+                image_result = image_analyzer.analyze(image_path)
+
+        # 4. Trust Engine combines everything
+        trust_result = trust_engine.compute_trust_score(
+            predicted_price=predicted_price,
+            listed_price=listing.listed_price,
+            nlp_result=nlp_result,
+            image_result=image_result
+        )
+
+        return {
+            "status": "success",
+            "predicted_price": predicted_price,
+            "listed_price": listing.listed_price,
+            "nlp_analysis": nlp_result,
+            "image_analysis": image_result,
+            "trust_report": trust_result
+        }
+
+    except Exception as e:
+        logger.error(f"Full analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="Full analysis failed.")
