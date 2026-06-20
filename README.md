@@ -1,6 +1,6 @@
 # 🚗 AI-Powered Vehicle Trust Intelligence Platform
 
-An end-to-end machine learning system that evaluates used vehicle listings by combining price prediction, NLP-based fraud detection, and image quality analysis into a unified Trust Score.
+An end-to-end machine learning prototype for analyzing used vehicle listings by combining price estimation, listing-text fraud checks, image-quality analysis, and a rule-based trust scoring pipeline into a unified dashboard.
 
 ## Features
 
