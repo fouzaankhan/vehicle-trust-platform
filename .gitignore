@@ -1,8 +1,40 @@
-venv/
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.log
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+.venv/
+
+# Environment files
 .env
-data/raw/
-data/processed/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / OS
+.vscode/
+.idea/
 .DS_Store
-mlruns/
+Thumbs.db
+
+# Data artifacts
+data/processed/
+data/raw/
+
+# Model artifacts
+models/*.joblib
+models/*.pkl
+
+# Reports / generated outputs
+reports/*.png
+reports/*.json
+
+# Runtime app data
+data/analyses.db
+data/uploads/

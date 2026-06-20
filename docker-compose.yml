@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vehicle-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    working_dir: /app
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: vehicle-dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      API_BASE_URL: http://api:8000
+    depends_on:
+      - api
