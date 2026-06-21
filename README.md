@@ -103,3 +103,8 @@ The image pipeline was redesigned so that trust scoring relies on reliable image
 - SQLite
 - Git
 - Docker
+
+## Project Scope
+
+This project was built as an end-to-end applied machine learning and software engineering prototype for used vehicle listing analysis. Its purpose is to demonstrate model development, risk scoring, API design, dashboard integration, and Dockerized deployment in a realistic workflow.
+The current version is constrained by the available training data, simplified fraud heuristics, and lightweight image-quality analysis. The trust score should therefore be interpreted as a decision-support signal within a learning prototype, not as a definitive real-world fraud or pricing judgment.
