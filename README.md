@@ -507,12 +507,6 @@ This project has important limitations:
 * Image analysis focuses on simple quality checks and is not a robust damage assessment engine.
 * The project uses local SQLite storage rather than a production database stack.
 
-So be clear about what this is:
-
-* **good portfolio project**
-* **good ML engineering / app integration project**
-* **not a production-grade used-car trust platform**
-
 ---
 
 ## 🚀 Future Improvements
