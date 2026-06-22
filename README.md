@@ -497,33 +497,6 @@ Any image uploaded through the Trust Report flow is saved here for analysis.
 
 ---
 
-## 📷 Suggested Screenshots for GitHub
-
-You should add screenshots of:
-
-1. **Main Dashboard**
-2. **Analyze Listing Page**
-3. **Trust Report Page**
-4. **Market Analytics Page**
-5. **History Page**
-
-Example section:
-
-```markdown
-## Screenshots
-
-### Dashboard
-![Dashboard](assets/screenshots/dashboard.png)
-
-### Analyze Listing
-![Analyze Listing](assets/screenshots/analyze_listing.png)
-
-### Trust Report
-![Trust Report](assets/screenshots/trust_report.png)
-```
-
----
-
 ## ⚠️ Limitations
 
 This project has important limitations:
