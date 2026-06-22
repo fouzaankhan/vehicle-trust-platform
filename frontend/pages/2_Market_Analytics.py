@@ -56,3 +56,4 @@ cond_price = df.groupby("condition_band")["price"].median().reset_index()
 fig4 = px.bar(cond_price, x="condition_band", y="price",
               color_discrete_sequence=["mediumseagreen"])
 st.plotly_chart(fig4, use_container_width=True)
+

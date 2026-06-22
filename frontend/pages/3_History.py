@@ -21,3 +21,4 @@ if df.empty:
 else:
     st.dataframe(df, use_container_width=True)
     st.caption(f"Showing last {len(df)} analyses.")
+

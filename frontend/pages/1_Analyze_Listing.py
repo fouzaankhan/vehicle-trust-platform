@@ -103,3 +103,4 @@ if submitted:
         # Save to history
         save_analysis(make, model_name, year, km_driven, price)
         st.caption("✓ Analysis saved to history.")
+

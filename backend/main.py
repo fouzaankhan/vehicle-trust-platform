@@ -1,24 +1,15 @@
-from src.models.trust_engine import TrustEngine
-from fastapi import UploadFile, File
-from src.models.image_analyzer import VehicleImageAnalyzer
-import shutil
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator
 from typing import Optional
-import sys
+import shutil
 import os
-from src.models.nlp_fraud_detector import NLPFraudDetector
 
-sys.path.append(
-    os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../..")
-    )
-)
-
-from src.models.predict import PricePredictor
-from src.models.nlp_fraud_detector import NLPFraudDetector
-from src.utils.logger import setup_logger
+from backend.models.predict import PricePredictor
+from backend.models.nlp_fraud_detector import NLPFraudDetector
+from backend.models.image_analyzer import VehicleImageAnalyzer
+from backend.models.trust_engine import TrustEngine
+from backend.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -41,9 +32,9 @@ app.add_middleware(
 
 predictor = PricePredictor()
 nlp_detector = NLPFraudDetector()
-
 image_analyzer = VehicleImageAnalyzer()
 trust_engine = TrustEngine()
+
 os.makedirs("data/uploads", exist_ok=True)
 
 # --------------------------------------------------
@@ -77,8 +68,22 @@ class ListingInput(BaseModel):
             raise ValueError("Condition must be between 1 and 49")
         return v
 
+
 class DescriptionInput(BaseModel):
     description: str
+
+
+class FullListingInput(BaseModel):
+    make: str
+    model_name: str
+    year: int
+    km_driven: int
+    listed_price: float
+    transmission: Optional[str] = "automatic"
+    condition: Optional[float] = 25.0
+    sale_month: Optional[int] = 6
+    description: str
+    image_filename: Optional[str] = None
 
 
 # --------------------------------------------------
@@ -116,10 +121,7 @@ def predict_price(listing: ListingInput):
 
     except Exception as e:
         logger.error(f"Prediction failed: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Prediction failed."
-        )
+        raise HTTPException(status_code=500, detail="Prediction failed.")
 
 
 @app.post("/analyze/description")
@@ -134,11 +136,9 @@ def analyze_description(input: DescriptionInput):
 
     except Exception as e:
         logger.error(f"NLP analysis failed: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="NLP analysis failed."
-        )
-    
+        raise HTTPException(status_code=500, detail="NLP analysis failed.")
+
+
 @app.post("/analyze/image")
 async def analyze_image(file: UploadFile = File(...)):
     try:
@@ -148,27 +148,15 @@ async def analyze_image(file: UploadFile = File(...)):
 
         result = image_analyzer.analyze(save_path)
         return {"status": "success", "image_analysis": result}
+
     except Exception as e:
         logger.error(f"Image analysis failed: {e}")
         raise HTTPException(status_code=500, detail="Image analysis failed.")
-    
-class FullListingInput(BaseModel):
-    make: str
-    model_name: str
-    year: int
-    km_driven: int
-    listed_price: float
-    transmission: Optional[str] = "automatic"
-    condition: Optional[float] = 25.0
-    sale_month: Optional[int] = 6
-    description: str
-    image_filename: Optional[str] = None  # filename already uploaded via /analyze/image
 
 
 @app.post("/analyze/full")
 def analyze_full_listing(listing: FullListingInput):
     try:
-        # 1. Price prediction
         price_input = {
             "make": listing.make,
             "model": listing.model_name,
@@ -178,20 +166,18 @@ def analyze_full_listing(listing: FullListingInput):
             "condition": listing.condition,
             "sale_month": listing.sale_month
         }
+
         price_result = predictor.predict(price_input)
         predicted_price = price_result["predicted_price"]
 
-        # 2. NLP fraud analysis
         nlp_result = nlp_detector.analyze(listing.description)
 
-        # 3. Image analysis (optional — only if image was previously uploaded)
         image_result = None
         if listing.image_filename:
             image_path = f"data/uploads/{listing.image_filename}"
             if os.path.exists(image_path):
                 image_result = image_analyzer.analyze(image_path)
 
-        # 4. Trust Engine combines everything
         trust_result = trust_engine.compute_trust_score(
             predicted_price=predicted_price,
             listed_price=listing.listed_price,

@@ -13,8 +13,8 @@ import xgboost as xgb
 # import shap
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-from src.utils.logger import setup_logger
-from src.utils.config_loader import load_config
+from backend.utils.logger import setup_logger
+from backend.utils.config_loader import load_config
 
 
 class PriceModelTrainer:

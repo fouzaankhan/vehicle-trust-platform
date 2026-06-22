@@ -3,7 +3,7 @@ import sqlite3
 import json
 import os
 from datetime import datetime
-from utils.api_client import upload_image, analyze_full_listing
+from utils.api_client import predict_price, analyze_full_listing, upload_image
 
 st.set_page_config(page_title="Trust Report", page_icon="🛡️", layout="wide")
 st.title("🛡️ Vehicle Trust Report")
@@ -143,3 +143,4 @@ if analyze_btn:
         save_report(make, model_name, year, listed_price,
                    result["predicted_price"], score, tier)
         st.success("✓ Trust report saved to history.")
+

@@ -1,13 +1,13 @@
 import sys
 print("Python:", sys.executable)
 
-from src.models.duplicate_detector import DuplicateDetector
+from backend.models.duplicate_detector import DuplicateDetector
 print("DuplicateDetector imported")
 
 import pandas as pd
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-from src.models.duplicate_detector import DuplicateDetector
+from backend.models.duplicate_detector import DuplicateDetector
 
 df = pd.read_csv("data/processed/listing_descriptions.csv")
 
