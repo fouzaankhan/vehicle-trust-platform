@@ -1,135 +1,309 @@
 # 🚗 AI-Powered Vehicle Trust Intelligence Platform
 
-An end-to-end machine learning prototype for analyzing used vehicle listings by combining price estimation, listing-text fraud checks, image-quality analysis, and a rule-based trust scoring pipeline into a unified dashboard.
+An end-to-end machine learning application for evaluating used vehicle listings by combining **price prediction**, **seller-description fraud analysis**, **image quality checks**, and a **unified trust score** into one system.
 
-## Features
-
-- Fair market price prediction using XGBoost
-- NLP-based fraud detection for vehicle listings
-- Image quality analysis using OpenCV
-- Unified Trust Engine producing a 0–100 trust score
-- FastAPI backend with REST APIs
-- Streamlit dashboard for end-to-end analysis
-- SQLite-based analysis history tracking
-
-## Dataset
-
-Source: Vehicle Sales Dataset
-
-- Records: 533,346 listings
-- Features: Vehicle age, mileage, condition, make/model statistics, transmission, and market features
-- Target: Log-transformed vehicle price (`log_price`)
-
-## Model Performance
-
-### Price Prediction Model (XGBoost)
-
-| Metric | Value |
-|----------|----------|
-| R² | 0.9064 |
-| MAE | $1,680.56 |
-| RMSE | $2,904.03 |
-| MAPE | 14.46% |
-
-Training dataset size: 533,346 vehicle listings.
-
-## Architecture
-
-Price Model (XGBoost)
-        │
-        ▼
-NLP Fraud Detector
-        │
-        ▼
-Image Quality Analyzer
-        │
-        ▼
-Trust Engine
-        │
-        ▼
-FastAPI Backend
-        │
-        ▼
-Streamlit Dashboard
-
-## Engineering Decisions
-
-### 1. Data Leakage Detection and Fix
-
-During model development, an unrealistically high R² (~0.997) was observed.
-
-Investigation revealed target leakage through market-reference features. The feature pipeline was redesigned and the model retrained, resulting in a realistic and reliable R² of 0.9064.
-
-### 2. PyTorch Dependency Conflict
-
-SentenceTransformer-based duplicate listing detection was developed but disabled in production after encountering Windows-specific PyTorch DLL initialization failures (WinError 1114).
-
-A rule-based NLP fraud detector was deployed instead, while preserving the semantic duplicate detection module for future containerized deployment.
-
-### 3. Image Scoring Redesign
-
-Initial HSV-based rust detection generated false positives from backgrounds and environmental objects.
-
-The image pipeline was redesigned so that trust scoring relies on reliable image quality metrics (blur, brightness, contrast), while damage detection remains available as an experimental review signal.
-
-## Trust Engine Validation
-
-### Scam Scenario
-
-- Predicted Price: $18,376
-- Listed Price: $9,000
-- NLP Fraud Score: 100
-- Trust Score: 24/100
-- Tier: LIKELY SCAM
-
-### Legitimate Scenario
-
-- Predicted Price: $18,376
-- Listed Price: $18,000
-- NLP Fraud Score: 0
-- Trust Score: 100/100
-- Tier: TRUSTWORTHY
-
-## Tech Stack
-
-- Python
-- XGBoost
-- Pandas
-- NumPy
-- Scikit-learn
-- FastAPI
-- Streamlit
-- OpenCV
-- SQLite
-- Git
-- Docker
-
-## 🛠️ Installation & Setup
-
-### Prerequisites
-
-Make sure the following are installed on your system before running the project:
-
-* **Python 3.11**
-* **Docker Desktop**
-* **Git**
-
-You will also need the trained model files and processed dataset already present in the project structure.
+This project was built primarily as a **learning-focused full-stack ML project** to understand how to take a trained model and turn it into a usable application with a frontend, backend, storage, and Dockerized deployment.
 
 ---
 
-### Step 1: Clone the Repository
+## ✨ Features
+
+* **Fair Price Prediction** using an XGBoost regression model
+* **Trust Report Generation** for complete vehicle listings
+* **NLP-Based Listing Review** to flag suspicious seller descriptions
+* **Image Quality Analysis** using OpenCV-based checks
+* **Market Analytics Dashboard** for exploring vehicle pricing patterns
+* **Analysis History Tracking** using SQLite
+* **FastAPI Backend** for model serving and trust analysis
+* **Streamlit Frontend** for an interactive multi-page dashboard
+* **Dockerized Deployment** using Docker Compose
+
+---
+
+## 📌 Project Scope
+
+This is a **portfolio / learning project**, not a production-grade automotive valuation system.
+
+The goal of the project was to build and integrate the full pipeline:
+
+* train a vehicle price model
+* expose predictions through an API
+* build a dashboard to interact with the model
+* add supporting trust signals such as NLP and image checks
+* store analysis history
+* containerize the entire application with Docker
+
+It is useful as an **ML engineering / applied AI project**, but the trust score and valuation outputs should **not** be treated as production-ready financial or consumer advice.
+
+---
+
+## 🧠 What the Platform Does
+
+The platform evaluates a used-car listing using multiple signals:
+
+### 1) Price Prediction
+
+The backend estimates a **fair market price** for a vehicle based on inputs such as:
+
+* make
+* model
+* year
+* kilometers driven
+* transmission
+* condition
+* sale month
+
+### 2) Seller Description Analysis
+
+The listing description is checked for suspicious wording or scam-like language patterns using an NLP-based fraud detector.
+
+### 3) Image Quality Analysis
+
+Uploaded vehicle images can be checked for quality-related issues such as blur / poor visibility, which can be treated as a supporting trust signal.
+
+### 4) Unified Trust Score
+
+The platform combines:
+
+* predicted fair price
+* listed price
+* NLP fraud result
+* image quality result
+
+into a final **Trust Report** with:
+
+* trust score
+* risk tier
+* price anomaly explanation
+* fraud / image observations
+
+---
+
+## 🏗️ System Architecture
+
+```text
+User Input / Listing Details
+          │
+          ▼
+    Streamlit Frontend
+          │
+          ▼
+     FastAPI Backend
+          │
+ ┌────────┼────────┬───────────────┐
+ ▼        ▼        ▼               ▼
+Price   NLP      Image          Trust
+Model  Analysis  Analysis       Engine
+ │        │        │               │
+ └────────┴────────┴───────────────┘
+                  │
+                  ▼
+            Trust Report Output
+                  │
+                  ▼
+          SQLite History Storage
+```
+
+---
+
+## 🗂️ Project Structure
+
+```text
+vehicle-trust-platform/
+│
+├── frontend/                     # Streamlit frontend
+│   ├── main.py
+│   ├── pages/
+│   │   ├── 1_Analyze_Listing.py
+│   │   ├── 2_Market_Analytics.py
+│   │   ├── 3_History.py
+│   │   └── 4_Trust_Report.py
+│   └── utils/
+│       └── api_client.py
+│
+├── backend/                      # FastAPI backend + ML pipeline logic
+│   ├── main.py
+│   ├── data/
+│   │   ├── clean.py
+│   │   └── generate_descriptions.py
+│   ├── features/
+│   │   └── build_features.py
+│   ├── models/
+│   │   ├── build_nlp_index.py
+│   │   ├── duplicate_detector.py
+│   │   ├── image_analyzer.py
+│   │   ├── nlp_fraud_detector.py
+│   │   ├── predict.py
+│   │   ├── train_price_model.py
+│   │   └── trust_engine.py
+│   └── utils/
+│       ├── config_loader.py
+│       └── logger.py
+│
+├── assets/
+│   └── sample_images/            # Example vehicle images
+│
+├── config/
+│   └── config.yaml               # Project configuration
+│
+├── data/
+│   ├── uploads/                  # Uploaded listing images at runtime
+│   └── analyses.db               # SQLite database for analysis history
+│
+├── models/                       # Trained model + artifacts
+│   ├── price_model_v1.joblib
+│   ├── feature_cols_v1.joblib
+│   ├── make_medians.joblib
+│   ├── model_medians.joblib
+│   └── description_ids.joblib
+│
+├── reports/                      # Training outputs / evaluation plots
+├── notebooks/                    # EDA / experimentation notebooks
+├── dev_tools/                    # Inspection, testing, and scratch scripts
+│   ├── testing/
+│   ├── inspection/
+│   └── experiments/
+│
+├── Dockerfile                    # Backend container
+├── Dockerfile.streamlit          # Frontend container
+├── docker-compose.yml            # Multi-container app runner
+├── requirements.txt
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+---
+
+## ⚙️ Tech Stack
+
+### Core Application
+
+* **Python**
+* **FastAPI** — backend API for serving predictions and trust analysis
+* **Streamlit** — frontend dashboard UI
+* **SQLite** — lightweight local database for storing analysis history
+* **Docker + Docker Compose** — containerized deployment
+
+### Machine Learning / Data
+
+* **Pandas** — data handling
+* **NumPy** — numerical operations
+* **Scikit-learn** — preprocessing / evaluation utilities
+* **XGBoost** — vehicle price prediction model
+* **Joblib** — saving / loading trained model artifacts
+
+### NLP / Image Processing
+
+* **Custom NLP fraud detector** for suspicious listing descriptions
+* **OpenCV** — image quality analysis
+* **Pillow** — image handling support
+
+### Visualization
+
+* **Matplotlib**
+* **Plotly**
+
+### Validation / Config
+
+* **Pydantic** — request validation for FastAPI
+* **PyYAML** — config loading
+* **python-dotenv** — environment variable loading
+
+---
+
+## 📊 Model Performance
+
+### Price Prediction Model
+
+* **Model:** XGBoost Regressor
+* **Training dataset size:** 533,346 vehicle listings
+* **Target:** vehicle sale price
+
+| Metric |     Value |
+| ------ | --------: |
+| R²     |    0.9064 |
+| MAE    | $1,680.56 |
+| RMSE   | $2,904.03 |
+| MAPE   |    14.46% |
+
+> These results reflect the final model after removing leakage-heavy features and retraining on a more realistic feature set.
+
+---
+
+## ⚠️ Key Engineering Lessons / Decisions
+
+### 1) Leakage Detection in the Price Model
+
+An unrealistically high R² (~0.997) initially appeared during training.
+
+That performance was misleading. Investigation showed that the model had learned from leakage-heavy market reference features, making the evaluation artificially strong. The feature pipeline was revised and the model was retrained, resulting in a much more realistic **R² of 0.9064**.
+
+### 2) End-to-End App Refactor
+
+The project was refactored into a clearer **frontend / backend structure**:
+
+* **frontend/** for Streamlit UI
+* **backend/** for FastAPI and ML logic
+
+This improved maintainability and made the app structure more aligned with real deployment patterns.
+
+### 3) Dockerized Multi-Service Setup
+
+The app was containerized using **Docker Compose** so the frontend and backend can run together consistently without manually launching separate processes in different terminals.
+
+### 4) Lightweight Persistence with SQLite
+
+A small SQLite database is used to store:
+
+* vehicle analyses
+* trust report history
+* listing metadata for previous runs
+
+This keeps the project self-contained without needing a full database server.
+
+---
+
+# 🛠️ Installation & Setup
+
+## Prerequisites
+
+Make sure you have the following installed:
+
+* **Python 3.11+**
+* **Git**
+* **Docker Desktop** (recommended for easiest setup)
+
+---
+
+# Option 1 — Run with Docker (Recommended)
+
+This is the easiest way to run the full project.
+
+## Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/fouzaankhan/vehicle-trust-platform.git
 cd vehicle-trust-platform
 ```
 
----
+## Step 2: Create Environment File
 
-### Step 2: Create the Environment File
+Create a `.env` file in the project root if needed, or copy from the example:
 
-Create a `.env` file in the project root with the following content:
+### macOS / Linux
+
+```bash
+cp .env.example .env
+```
+
+### Windows PowerShell
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Example `.env` content:
 
 ```env
 PROJECT_NAME=vehicle-trust-platform
@@ -137,63 +311,32 @@ ENV=development
 LOG_LEVEL=INFO
 ```
 
----
-
-### Step 3: Verify Required Project Files
-
-Before running the project, make sure these files and folders exist inside the repository:
-
-```bash
-vehicle-trust-platform/
-│
-├── app/
-├── src/
-├── data/
-│   ├── processed/
-│   │   ├── vehicle_sales_clean.csv
-│   │   ├── vehicle_sales_features.csv
-│   │   └── listing_descriptions.csv
-│
-├── models/
-├── Dockerfile
-├── Dockerfile.streamlit
-├── docker-compose.yml
-├── requirements.txt
-└── .env
-```
-
----
-
-### Step 4: Build and Start the Application
-
-Run the following command from the project root:
+## Step 3: Build and Start the Application
 
 ```bash
 docker compose up --build
 ```
 
-This will start both services:
+This starts:
 
-* **FastAPI backend** on port **8000**
-* **Streamlit dashboard** on port **8501**
+* **FastAPI backend** on `http://localhost:8000`
+* **Streamlit frontend** on `http://localhost:8501`
 
----
+## Step 4: Open the App
 
-### Step 5: Open the Application
+Frontend dashboard:
 
-After the containers start successfully, open the Streamlit dashboard in your browser:
-
-```bash
+```text
 http://localhost:8501
 ```
 
-You can also verify that the backend API is running by visiting:
+Backend health endpoint:
 
-```bash
+```text
 http://localhost:8000/health
 ```
 
-Expected API response:
+Expected health response:
 
 ```json
 {"status":"ok","model_version":"v1"}
@@ -201,73 +344,216 @@ Expected API response:
 
 ---
 
-## 🚗 Using the Vehicle Trust Platform
+# Option 2 — Run Without Docker (Manual Local Run)
 
-### Analyze a Vehicle Listing
+Use this if you want to run frontend and backend manually in separate terminals.
 
-1. Open the **Streamlit dashboard** at `http://localhost:8501`
-2. Go to the **Analyze Listing** page
-3. Enter listing details such as:
+## Step 1: Clone the Repository
 
-   * Make
-   * Model
-   * Year
-   * Mileage / km driven
-   * Listed price
-   * Transmission
-   * Condition
-   * Sale month
-   * Seller description
-4. Optionally upload a vehicle image
-5. Submit the listing for analysis
+```bash
+git clone https://github.com/fouzaankhan/vehicle-trust-platform.git
+cd vehicle-trust-platform
+```
 
-The platform will generate:
+## Step 2: Create and Activate a Virtual Environment
 
-* **Predicted Fair Price**
-* **Trust Score**
-* **Risk Tier**
-* **Price Anomaly Risk**
-* **NLP Fraud Risk**
-* **Image Quality Risk**
-* **Explanatory Trust Report**
+### Windows PowerShell
+
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
+
+### macOS / Linux
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+## Step 3: Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Step 4: Create Environment File
+
+Create a `.env` file in the root of the project:
+
+```env
+PROJECT_NAME=vehicle-trust-platform
+ENV=development
+LOG_LEVEL=INFO
+```
+
+## Step 5: Start the Backend API
+
+Open **Terminal 1** and run:
+
+```bash
+uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
+
+## Step 6: Start the Streamlit Frontend
+
+Open **Terminal 2** and run:
+
+### Windows PowerShell
+
+```powershell
+$env:API_BASE_URL="http://localhost:8000"
+streamlit run frontend/main.py
+```
+
+### macOS / Linux
+
+```bash
+export API_BASE_URL=http://localhost:8000
+streamlit run frontend/main.py
+```
+
+## Step 7: Open the App
+
+Frontend:
+
+```text
+http://localhost:8501
+```
+
+Backend health check:
+
+```text
+http://localhost:8000/health
+```
 
 ---
 
-## 🧩 Running Without Docker (Optional)
+## ▶️ How to Use the App
 
-If you want to run the backend and dashboard manually instead of using Docker, use two terminals.
+### 1. Analyze Listing
 
-### Terminal 1 — Start FastAPI Backend
+Use the **Analyze Listing** page to enter:
 
-```bash
-uvicorn src.api.main:app --reload
-```
+* make
+* model
+* year
+* kilometers driven
+* condition
+* transmission
+* sale month
 
-### Terminal 2 — Start Streamlit Dashboard
+The app will return a predicted fair price.
 
-```bash
-streamlit run app/main.py
-```
+### 2. Trust Report
 
-Then open:
+Use the **Trust Report** page to evaluate a full listing using:
 
-* Dashboard → `http://localhost:8501`
-* API health check → `http://localhost:8000/health`
+* vehicle details
+* listed price
+* seller description
+* optional vehicle image
+
+The app will return:
+
+* predicted price
+* trust score
+* risk tier
+* fraud / image / price anomaly observations
+
+### 3. Market Analytics
+
+Use **Market Analytics** to explore pricing patterns and summary visuals from the processed vehicle sales dataset.
+
+### 4. History
+
+Use **History** to view saved past analyses stored in SQLite.
 
 ---
 
-## 🛑 Stopping the Application
+## 💾 Runtime Data Storage
 
-To stop the Docker containers:
+The project stores runtime data locally:
 
-```bash
-docker compose down
+### Analysis History
+
+Stored in:
+
+```text
+data/analyses.db
 ```
 
-If you started the backend and dashboard manually, stop them using `Ctrl + C` in each terminal.
+This SQLite database stores previous vehicle analyses and trust report history.
 
+### Uploaded Images
 
-## Project Scope
+Stored in:
 
-This project was built as an end-to-end applied machine learning and software engineering prototype for used vehicle listing analysis. Its purpose is to demonstrate model development, risk scoring, API design, dashboard integration, and Dockerized deployment in a realistic workflow.
-The current version is constrained by the available training data, simplified fraud heuristics, and lightweight image-quality analysis. The trust score should therefore be interpreted as a decision-support signal within a learning prototype, not as a definitive real-world fraud or pricing judgment.
+```text
+data/uploads/
+```
+
+Any image uploaded through the Trust Report flow is saved here for analysis.
+
+---
+
+## 📷 Suggested Screenshots for GitHub
+
+You should add screenshots of:
+
+1. **Main Dashboard**
+2. **Analyze Listing Page**
+3. **Trust Report Page**
+4. **Market Analytics Page**
+5. **History Page**
+
+Example section:
+
+```markdown
+## Screenshots
+
+### Dashboard
+![Dashboard](assets/screenshots/dashboard.png)
+
+### Analyze Listing
+![Analyze Listing](assets/screenshots/analyze_listing.png)
+
+### Trust Report
+![Trust Report](assets/screenshots/trust_report.png)
+```
+
+---
+
+## ⚠️ Limitations
+
+This project has important limitations:
+
+* The price model is trained on a specific historical vehicle sales dataset and may not generalize reliably to real-world live dealer listings.
+* Trust scoring is heuristic and learning-focused, not production-calibrated.
+* NLP fraud analysis is not a full fraud-detection system.
+* Image analysis focuses on simple quality checks and is not a robust damage assessment engine.
+* The project uses local SQLite storage rather than a production database stack.
+
+So be clear about what this is:
+
+* **good portfolio project**
+* **good ML engineering / app integration project**
+* **not a production-grade used-car trust platform**
+
+---
+
+## 🚀 Future Improvements
+
+If this project were to be continued further, the next meaningful improvements would be:
+
+* retrain on a more realistic and cleaner live-market dataset
+* build stronger vehicle-specific price features
+* improve NLP fraud detection beyond rule-based heuristics
+* add duplicate listing detection to the production pipeline
+* add proper authentication / user accounts
+* replace SQLite with PostgreSQL for larger-scale usage
+* deploy backend and frontend to cloud infrastructure
+* add monitoring / logging / model version tracking
+* improve trust score calibration using real labeled scam / safe listings
+
+---
